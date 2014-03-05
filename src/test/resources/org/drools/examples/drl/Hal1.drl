@@ -1,0 +1,17 @@
+package org.drools.examples.drl;
+
+import org.drools.examples.drl.Person;
+
+rule "rule 1" when
+    m : Person(  name == "HAL2" )
+then
+    System.out.println( m.getName() + ",  " +  m.getAge());
+end
+
+rule "rule 2" when
+    p: Person( name == "HAL" )
+then
+    p.setHappy(true);
+    System.out.println( p.getName() + ",  " +  p.getAge()+ ",  " +p.isHappy());
+end
+
