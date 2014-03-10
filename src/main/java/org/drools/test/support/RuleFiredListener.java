@@ -5,12 +5,15 @@ import org.drools.core.impl.StatefulKnowledgeSessionImpl;
 import org.drools.core.impl.StatelessKnowledgeSessionImpl;
 import org.drools.test.annotations.ExecuteAfterRule;
 import org.drools.test.annotations.ExecuteBeforeRule;
+import org.junit.Test;
+import org.junit.runners.model.InitializationError;
 import org.kie.api.event.rule.AfterMatchFiredEvent;
 import org.kie.api.event.rule.BeforeMatchFiredEvent;
 import org.kie.api.event.rule.DefaultAgendaEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +31,8 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
     Map<String, List<Method>> beforeMethods;
     public static final Logger logger = LoggerFactory.getLogger(RuleFiredListener.class);
 
-    public RuleFiredListener(Class testClass) {
+    public RuleFiredListener(Class testClass) throws InitializationError
+    {
         super();
         rulesFiredMap = new HashMap<String, Integer>();
         afterMethods = new HashMap<String, List<Method>>();
@@ -36,7 +40,7 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
         setTestClass(testClass);
     }
 
-    public void setTestClass(Class testClass) {
+    public void setTestClass(Class testClass) throws InitializationError {
         extractRuleFiredMethods(testClass);
     }
 
@@ -44,7 +48,7 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
         this.testObject = testObject;
     }
 
-    private void extractRuleFiredMethods(Class testClass) {
+    private void extractRuleFiredMethods(Class testClass) throws InitializationError {
         if ( testClass != null) {
             Method[] methods = testClass.getMethods();
             for (Method method : methods){
@@ -52,8 +56,12 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
 
                 if (parameterTypes.length == 1 && "ExecutionContext".equalsIgnoreCase(parameterTypes[0].getSimpleName())){
 
+                    Annotation testAnnotation = method.getAnnotation(Test.class);
                     ExecuteBeforeRule executeBeforeFiringRule = method.getAnnotation(ExecuteBeforeRule.class);
                     if (executeBeforeFiringRule != null){
+                        if  (testAnnotation != null) {
+                            throw new InitializationError("Single method cannot have both '@Test' and '@ExecuteBeforeRule annotations.");
+                        }
                         String ruleName = executeBeforeFiringRule.value();
                         List<Method> methodsList = beforeMethods.get(ruleName);
                         if ( methodsList == null ) {
@@ -66,6 +74,9 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
 
                     ExecuteAfterRule executeAfterFiringRule = method.getAnnotation(ExecuteAfterRule.class);
                     if (executeAfterFiringRule != null){
+                        if  (testAnnotation != null) {
+                            throw new InitializationError("Single method cannot have both '@Test' and '@ExecuteAfterRule annotations.");
+                        }
                         String ruleName = executeAfterFiringRule.value();
                         List<Method> methodsList = afterMethods.get(ruleName);
                         if ( methodsList == null ) {
