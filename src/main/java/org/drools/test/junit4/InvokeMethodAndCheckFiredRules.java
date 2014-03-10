@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class InvokeMethodAndCheckFiredRules extends InvokeMethod {
+class InvokeMethodAndCheckFiredRules extends InvokeMethod {
     private RuleFiredListener ruleFiredListener;
 
     public InvokeMethodAndCheckFiredRules(FrameworkMethod testMethod, Object target, RuleFiredListener ruleFiredListener) {
