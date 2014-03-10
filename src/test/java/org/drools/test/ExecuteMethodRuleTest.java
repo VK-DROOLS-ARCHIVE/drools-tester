@@ -62,5 +62,6 @@ public class ExecuteMethodRuleTest {
     @ExecuteBeforeRule("rule 1")
     public void sampleMethodBefore(ExecutionContext executionContext) throws Exception {
         System.out.println("before rule 1");
+        executionContext.stopExecution();
     }
 }

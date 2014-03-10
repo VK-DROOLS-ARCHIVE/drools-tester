@@ -1,5 +1,6 @@
 package org.drools.test.support;
 
+import org.drools.core.WorkingMemory;
 import org.drools.core.impl.StatefulKnowledgeSessionImpl;
 import org.drools.core.impl.StatelessKnowledgeSessionImpl;
 import org.drools.test.annotations.ExecuteAfterRule;
@@ -20,37 +21,37 @@ import java.util.Map;
 public class RuleFiredListener extends DefaultAgendaEventListener {
 
     Map<String, Integer> rulesFiredMap;
+
+
     private Object testObject;
     Map<String, List<Method>> afterMethods;
     Map<String, List<Method>> beforeMethods;
     public static final Logger logger = LoggerFactory.getLogger(RuleFiredListener.class);
 
-    public RuleFiredListener(final Object testObject) {
+    public RuleFiredListener(Class testClass) {
         super();
-        this.testObject = testObject;
         rulesFiredMap = new HashMap<String, Integer>();
         afterMethods = new HashMap<String, List<Method>>();
         beforeMethods = new HashMap<String, List<Method>>();
-        extractRuleFiredMethods();
+        setTestClass(testClass);
     }
 
-    private void extractRuleFiredMethods() {
-        if ( testObject != null) {
-            Method[] methods = testObject.getClass().getMethods();
+    public void setTestClass(Class testClass) {
+        extractRuleFiredMethods(testClass);
+    }
+
+    public void setTestObject(Object testObject) {
+        this.testObject = testObject;
+    }
+
+    private void extractRuleFiredMethods(Class testClass) {
+        if ( testClass != null) {
+            Method[] methods = testClass.getMethods();
             for (Method method : methods){
                 Class<?>[] parameterTypes = method.getParameterTypes();
+
                 if (parameterTypes.length == 1 && "ExecutionContext".equalsIgnoreCase(parameterTypes[0].getSimpleName())){
-                    ExecuteAfterRule executeAfterFiringRule = method.getAnnotation(ExecuteAfterRule.class);
-                    if (executeAfterFiringRule != null){
-                        String ruleName = executeAfterFiringRule.value();
-                        List<Method> methodsList = afterMethods.get(ruleName);
-                        if ( methodsList == null ) {
-                            methodsList = new ArrayList<Method>();
-                            afterMethods.put(ruleName, methodsList);
-                        }
-                        methodsList.add(method);
-                        logger.debug("Found method annotated with @ExecuteAfterRule. Method:" +method.getName()+", Rule: "+ ruleName);
-                    }
+
                     ExecuteBeforeRule executeBeforeFiringRule = method.getAnnotation(ExecuteBeforeRule.class);
                     if (executeBeforeFiringRule != null){
                         String ruleName = executeBeforeFiringRule.value();
@@ -61,6 +62,18 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
                         }
                         methodsList.add(method);
                         logger.debug("Found method annotated with @ExecuteBeforeRule. Method:" +method.getName()+", Rule: "+ ruleName);
+                    }
+
+                    ExecuteAfterRule executeAfterFiringRule = method.getAnnotation(ExecuteAfterRule.class);
+                    if (executeAfterFiringRule != null){
+                        String ruleName = executeAfterFiringRule.value();
+                        List<Method> methodsList = afterMethods.get(ruleName);
+                        if ( methodsList == null ) {
+                            methodsList = new ArrayList<Method>();
+                            afterMethods.put(ruleName, methodsList);
+                        }
+                        methodsList.add(method);
+                        logger.debug("Found method annotated with @ExecuteAfterRule. Method:" +method.getName()+", Rule: "+ ruleName);
                     }
                 }
             }
@@ -83,21 +96,23 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
 
         List<Method> methodsList = afterMethods.get(ruleName);
         if ( methodsList !=null && methodsList.size() > 0) {
-            org.drools.core.WorkingMemory workingMemory = null;
+            WorkingMemory workingMemory = null;
             if (event.getKieRuntime() instanceof StatefulKnowledgeSessionImpl) {
                 workingMemory = ((StatefulKnowledgeSessionImpl)event.getKieRuntime()).getInternalWorkingMemory();
             } else if ( event.getKieRuntime() instanceof StatelessKnowledgeSessionImpl ) {
-                workingMemory = ((org.drools.core.WorkingMemory)event.getKieRuntime());
+                workingMemory = ((WorkingMemory)event.getKieRuntime());
             }
-            for ( Method method : methodsList) {
-                try {
-                    ExecutionContext executionContext = new ExecutionContext(workingMemory);
-                    method.invoke(testObject, executionContext);
-                    if (!executionContext.shouldContinueExecution()){
-                        workingMemory.halt();
+            if (workingMemory != null) {
+                for (Method method : methodsList) {
+                    try {
+                        ExecutionContext executionContext = new ExecutionContext(workingMemory);
+                        method.invoke(testObject, executionContext);
+//                        if (!executionContext.shouldContinueExecution()) {
+//                            workingMemory.halt();
+//                        }
+                    } catch (Exception e) {
+                        logger.error("Exception while invoking @ExecuteAfterRule", e);
                     }
-                } catch (Exception e) {
-                    logger.error("Exception while invoking @ExecuteAfterRule", e);
                 }
             }
         }
@@ -108,20 +123,23 @@ public class RuleFiredListener extends DefaultAgendaEventListener {
         String ruleName = event.getMatch().getRule().getName();
         List<Method> methodsList = beforeMethods.get(ruleName);
         if ( methodsList != null && methodsList.size() > 0) {
-            org.drools.core.WorkingMemory workingMemory = null;
+            WorkingMemory workingMemory = null;
             if (event.getKieRuntime() instanceof StatefulKnowledgeSessionImpl) {
                 workingMemory = ((StatefulKnowledgeSessionImpl)event.getKieRuntime()).getInternalWorkingMemory();
             } else if ( event.getKieRuntime() instanceof StatelessKnowledgeSessionImpl ) {
-                workingMemory = ((org.drools.core.WorkingMemory)event.getKieRuntime());
+                workingMemory = ((WorkingMemory)event.getKieRuntime());
             }
-            for ( Method method : methodsList) {
-                try {
-                    ExecutionContext executionContext = new ExecutionContext(workingMemory);
-                    method.invoke(testObject, executionContext);
-                    if (!executionContext.shouldContinueExecution()){
-                        workingMemory.halt();
-                    }                } catch (Exception e) {
-                    logger.error("Exception while invoking @ExecuteBeforeRule", e);
+            if (workingMemory != null) {
+                for ( Method method : methodsList) {
+                    try {
+                        ExecutionContext executionContext = new ExecutionContext(workingMemory);
+                        method.invoke(testObject, executionContext);
+//                        if (!executionContext.shouldContinueExecution()){
+//                            event.getKieRuntime().halt();
+//                        }
+                    } catch (Exception e) {
+                        logger.error("Exception while invoking @ExecuteBeforeRule", e);
+                    }
                 }
             }
         }

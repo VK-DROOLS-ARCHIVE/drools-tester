@@ -13,6 +13,7 @@ import org.kie.api.event.KieRuntimeEventManager;
 import org.kie.api.runtime.KieSession;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 public class Drools6TestRunner extends BlockJUnit4ClassRunner {
 
@@ -56,6 +57,7 @@ public class Drools6TestRunner extends BlockJUnit4ClassRunner {
 
     public Drools6TestRunner(Class<?> klass) throws InitializationError {
         super(klass);
+        ruleFiredListener = new RuleFiredListener(klass);
         //helper classes to remove clutter and organize related pieces of code.
         new KieFieldsReader(this).readKieFields(klass);
         new KieCreationHelper(this).createKieBase(klass);
@@ -66,7 +68,7 @@ public class Drools6TestRunner extends BlockJUnit4ClassRunner {
         Object object = super.createTest();
         injectKieBase(object);
         injectKieSession(object);
-        ruleFiredListener = new RuleFiredListener(object);
+        ruleFiredListener.setTestObject(object);
         attachRuleListeners();
         return object;
     }
