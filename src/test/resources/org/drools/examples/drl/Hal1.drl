@@ -5,7 +5,7 @@ import org.drools.examples.drl.Person;
 rule "rule 1" when
     m : Person(  name == "HAL2" )
 then
-    System.out.println( m.getName() + ",  " +  m.getAge());
+    System.out.println( "Rule 1:"+m.getName() + ",  " +  m.getAge());
 end
 
 rule "rule 2" when

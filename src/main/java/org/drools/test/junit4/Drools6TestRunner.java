@@ -19,7 +19,7 @@ public class Drools6TestRunner extends BlockJUnit4ClassRunner {
     private Field kieBaseField, kieSessionField ;
     private KieBase kieBase;
     private String kieSessionName;
-    private RuleFiredListener ruleFiredListener = new RuleFiredListener();
+    private RuleFiredListener ruleFiredListener = null;
     private Object ksession = null;
 
     Field getKieBaseField() {
@@ -66,11 +66,13 @@ public class Drools6TestRunner extends BlockJUnit4ClassRunner {
         Object object = super.createTest();
         injectKieBase(object);
         injectKieSession(object);
+        ruleFiredListener = new RuleFiredListener(object);
         attachRuleListeners();
         return object;
     }
 
-     /**
+
+    /**
      * Returns a {@link Statement} that invokes {@code method} on {@code test}
      */
     protected Statement methodInvoker(FrameworkMethod method, Object test) {
